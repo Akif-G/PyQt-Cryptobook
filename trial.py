@@ -6,25 +6,27 @@
 ##   mehmetgultekin@sabanciuniv.edu
 ##   https://github.com/Akif-G
 ##   project start date: 28.01.2020
-##   last edit: 30.01.2020
+##   last edit: 06.04.2020
 ##
 ##   two main screen:
-##       asking the mood of the user
+##       asking the mood of the user (now used as a key screen)
 ##       taking notes and saving them for later usage
 
 import sys
-from datetime import date
+from  winsound import Beep
 import os.path
+import threading
+import time
+from datetime import date
 from PyQt5.QtWidgets import QTextEdit, QSlider, QGraphicsDropShadowEffect, QLabel, QMainWindow, QApplication, QWidget, QPushButton, QAction, QLineEdit, QMessageBox
 from PyQt5.QtGui import QIcon, QPalette, QFont
 from PyQt5.QtCore import pyqtSlot, Qt
 
-
+import base64
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-import base64
 
 ###key derivation function that derive bytes suitable for cryptographic operations, from string etc. ...
 kdf = PBKDF2HMAC(
@@ -86,10 +88,18 @@ class App(QMainWindow):
 
         #decyripting text
         if len(textTaker())!=0:
-            e= Fernet(self.key)
-            token=textTaker().encode()
-            decrypted = e.decrypt(token)
-            self.textbox.setText(decrypted.decode())
+            try:
+                e= Fernet(self.key)
+                token=textTaker().encode()
+                decrypted = e.decrypt(token)
+                self.textbox.setText(decrypted.decode())
+            except:
+                #pitch sound playing
+                thread = threading.Thread(target=Beep,args=(600,500,))
+                thread.start()
+                # wait here for the sound to be played
+                thread.join()
+                raise Exception
         #replacing placeholder text with decrypted one. 
         
         self.textbox.setAlignment(Qt.AlignTop)
