@@ -1,5 +1,6 @@
-##   This application is an implementation for MPI internship application. 
-##   note: install PYQT library for further implementation
+##   This application is an implementation for MPI internship application,
+##   previously added an cryptographic key implementation, and changed a few properties.
+##   note: install PyQt5 and cryptography libraries for further implementation
 ##
 ##   This application is created by Akif Gultekin
 ##   mehmetgultekin@sabanciuniv.edu
@@ -175,14 +176,23 @@ class Survey(QMainWindow):
         self.slider.setGeometry(100, 60, 300, 50)
         self.slider.setTickInterval(16)
         self.slider.setSingleStep(1)
+        #value of the slider
+        self.label=QLabel("0",self)
+        self.label.setFont(QFont('SansSerif', 16))
+        self.label.setStyleSheet('color: white')
+        self.label.move(310,140)
+        
+        #change the value when it is changed
+        self.slider.valueChanged.connect(self.label.setNum)
 
         #creating "close button"
         self.shadow = QGraphicsDropShadowEffect(blurRadius=8, xOffset=3, yOffset=4)
-        self.button2 = QPushButton('close', self)
+        self.button2 = QPushButton('open: 4', self)
         self.button2.move(200,140)
         self.button2.setGraphicsEffect(self.shadow)
+        #change the value when it is clicked
+        self.button2.clicked.connect(lambda: self.button2.setText("open: "+str(3-self.askCounter)))
 
-        #if last login was not today
         self.show()
         
         self.screens=list()
