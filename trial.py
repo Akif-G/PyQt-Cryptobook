@@ -19,7 +19,23 @@ from PyQt5.QtGui import QIcon, QPalette, QFont
 from PyQt5.QtCore import pyqtSlot, Qt
 
 
-#main decider if last login was today or not.
+from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import base64
+
+###key derivation function that derive bytes suitable for cryptographic operations, from string etc. ...
+kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=b'salt_',
+            iterations=100000,
+            backend=default_backend()
+        )
+
+
+#main decider if password is...
 askedAlready=False
 
 #reads data file and returns the data except the last login date
@@ -41,6 +57,7 @@ class App(QMainWindow):
         self.top = 200
         self.width = 580
         self.height = 700
+        self.key=Survey.key
         self.initUI()
 
     #User Interface functions 
@@ -65,7 +82,15 @@ class App(QMainWindow):
         self.textbox = QTextEdit(self)
         self.textbox.move(40,50)
         self.textbox.setStyleSheet("QTextEdit { border: none; background-color: rgb(240,240,240) }")
-        self.textbox.setText(textTaker())
+
+        #decyripting text
+        if len(textTaker())!=0:
+            e= Fernet(self.key)
+            token=textTaker().encode()
+            decrypted = e.decrypt(token)
+            self.textbox.setText(decrypted.decode())
+        #replacing placeholder text with decrypted one. 
+        
         self.textbox.setAlignment(Qt.AlignTop)
         self.textbox.setFont(QFont('SansSerif', 12))
         #set size 500,500
@@ -104,7 +129,10 @@ class App(QMainWindow):
     def on_click(self):
         textboxValue = self.textbox.toPlainText()
         f= open("data_pyqt_implementation","w")
-        f.write(str(date.today())+textboxValue)
+        #encyripting text with given key
+        ################################
+        e= Fernet(self.key)
+        f.write(str(date.today())+e.encrypt(textboxValue.encode()).decode() )
         f.close()
     
 
@@ -112,64 +140,76 @@ class Survey(QMainWindow):
     #second window that asks how user feels once every day
     def __init__(self):
         super().__init__()
-        if True:
-            #there can be conditionals here
 
-            #main settings
-            self.left = 700
-            self.top = 400
-            self.width = 510
-            self.height = 200
-            self.setWindowTitle("Dialog")
-            self.setGeometry(self.left, self.top, self.width, self.height)
+        self.askCounter=0
+        self.key=""
+        #main settings
+        self.left = 700
+        self.top = 400
+        self.width = 510
+        self.height = 200
+        self.setWindowTitle("Dialog")
+        self.setGeometry(self.left, self.top, self.width, self.height)
 
-            #create question text
-            self.text = QLabel("How are you feeling today?", self) 
-            self.text.setFont(QFont('SansSerif', 14))
-            self.text.resize(600,40)
-            self.text.move(110,0 )
+        #create question text
+        self.text = QLabel("How are you feeling today?", self) 
+        self.text.setFont(QFont('SansSerif', 14))
+        self.text.resize(600,40)
+        self.text.move(110,0 )
 
-            #create scale elements for slider
-            self.text2 = QLabel("   very,\nvery bad", self) 
-            self.text2.setFont(QFont('SansSerif', 10))
-            self.text2.resize(600,40)
-            self.text2.move(20,60 )
+        #create scale elements for slider
+        self.text2 = QLabel("   very,\nvery bad", self) 
+        self.text2.setFont(QFont('SansSerif', 10))
+        self.text2.resize(600,40)
+        self.text2.move(20,60 )
 
-            self.text3 = QLabel("   very,\nvery good", self) 
-            self.text3.setFont(QFont('SansSerif', 10))
-            self.text3.resize(600,40)
-            self.text3.move(420,60 )
+        self.text3 = QLabel("   very,\nvery good", self) 
+        self.text3.setFont(QFont('SansSerif', 10))
+        self.text3.resize(600,40)
+        self.text3.move(420,60 )
 
-            #create slider
-            slider = QSlider(Qt.Horizontal,self)
-            slider.setFocusPolicy(Qt.StrongFocus)
-            slider.setTickPosition(QSlider.TicksBothSides)
-            slider.setGeometry(100, 60, 300, 50)
-            slider.setTickInterval(16)
-            slider.setSingleStep(1)
+        #create slider
+        self.slider = QSlider(Qt.Horizontal,self)
+        self.slider.setFocusPolicy(Qt.StrongFocus)
+        self.slider.setTickPosition(QSlider.TicksBothSides)
+        self.slider.setGeometry(100, 60, 300, 50)
+        self.slider.setTickInterval(16)
+        self.slider.setSingleStep(1)
 
-            #creating "close button"
-            self.shadow = QGraphicsDropShadowEffect(blurRadius=8, xOffset=3, yOffset=4)
-            self.button2 = QPushButton('close', self)
-            self.button2.move(200,140)
-            self.button2.setGraphicsEffect(self.shadow)
-       
-            #if last login was not today
-            if not askedAlready:
-                self.show()
-            
-            self.screens=list()
-            #id pressed to the button close and switch windows
+        #creating "close button"
+        self.shadow = QGraphicsDropShadowEffect(blurRadius=8, xOffset=3, yOffset=4)
+        self.button2 = QPushButton('close', self)
+        self.button2.move(200,140)
+        self.button2.setGraphicsEffect(self.shadow)
+
+        #if last login was not today
+        self.show()
+        
+        self.screens=list()
+        #if pressed to the button close and switch windows
+        self.button2.clicked.connect(self.decider)
+
+    @pyqtSlot()
+    def decider(self):
+        if self.askCounter>=2:
+            self.key+= str(self.slider.value())
             self.button2.clicked.connect(self.continueProgram)
+        else:
+            self.key+= str(self.slider.value())
+            self.askCounter+=1
+
+
 
     @pyqtSlot()
     def continueProgram(self):
         askedAlready=True
+        self.key=base64.urlsafe_b64encode(kdf.derive(self.key.encode()))
         ex=App(self)
         self.screens.append(ex)
         ex.show()
         self.destroy()
 
+#now useless function as we use hard encryption with keys
 def is_today():
     #reads file and decides if last login was today
     readFile=open("data_pyqt_implementation","r")
@@ -196,16 +236,12 @@ if __name__ == '__main__':
         f= open("data_pyqt_implementation","w")
         f.close()
 
-    askedAlready= is_today()
     app = QApplication(sys.argv)
     app.setStyle('Fusion')
     app.setStyleSheet('QMainWindow{background-color: rgb(141, 145, 145);}')
 
     Question=Survey()
-    ex = App(Question)
     #if the question asked already today it will not ask again and show the main screen
-    if askedAlready:
-        ex.show()
     #continue using screens until user closes
     sys.exit(app.exec_())
 
