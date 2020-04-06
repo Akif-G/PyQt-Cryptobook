@@ -1,7 +1,6 @@
 # PyQt-Notebook
 *Basic implementation for pyqt on python for educational purposes...*
 
-Very unsecure data implementation with no encyription.
-  --> will be implemented with key and hash (probably sha256 for training.)
-  
- ![](init.gif)
+After creating a notebook with pyqt finally implemented it with PBKDF2, key derivation function and totally secure with hash mechanism.
+Furthermore, I believe it is beautiful as much as possible.
+ ![](show.gif)
